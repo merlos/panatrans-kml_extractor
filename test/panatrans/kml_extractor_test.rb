@@ -203,12 +203,17 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         assert_equal(-1.0, r3[:lat])
         assert_equal 1.0, r3[:lon]
 
-        # One point on the left is closer
+        # Two points on the right, but there is one on the left closer
         point_arr4 = [{lat:-1.0, lon: 1.0}, {lat: -2.0, lon: 2.0},{lat:0.5,lon:0.5}]
         r4 = ste.closest_point_to_segment_at_right(point_arr4,segment_start, segment_end)
         assert_equal(-1.0, r4[:lat])
         assert_equal 1.0, r4[:lon]
 
+        # The segment goes on the other direction
+        point_arr5 = [{lat:-1.0, lon: 1.0}, {lat: -2.0, lon: 2.0},{lat:0.5,lon:0.5}]
+        r5 = ste.closest_point_to_segment_at_right(point_arr5,segment_end, segment_start)
+        assert_equal(0.5, r5[:lat])
+        assert_equal 0.5, r5[:lon]
       end
 
 end
