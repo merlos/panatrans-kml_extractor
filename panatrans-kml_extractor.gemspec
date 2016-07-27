@@ -7,11 +7,11 @@ Gem::Specification.new do |spec|
   spec.name          = "panatrans-kml_extractor"
   spec.version       = Panatrans::KmlExtractor::VERSION
   spec.authors       = ["merlos"]
-  spec.email         = ["merlos@gmail.com"]
+  spec.email         = ["jmmerlos@merlos.org"]
 
-  spec.summary       = %q{TODO: Write a short summary, because Rubygems requires one.}
-  spec.description   = %q{TODO: Write a longer description or delete this line.}
-  spec.homepage      = "TODO: Put your gem's website or public repo URL here."
+  spec.summary       = %q{Helper gem for panatrans. Converts Mibus export KML to GTFS}
+  spec.description   = %q{Helper gem to convert an export of mibus KML to GTFS}
+  spec.homepage      = "http://github.com/merlos/panatrans-kml-extractor"
   spec.license       = "MIT"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
@@ -30,4 +30,9 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "bundler", "~> 1.12"
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "minitest", "~> 5.0"
+
+  spec.add_dependency "nokogiri"
+  spec.add_dependency "open-uri"
+  spec.add_dependency "pp"
+  spec.add_dependency "cross-track-distance","~>1.0.0"
 end
