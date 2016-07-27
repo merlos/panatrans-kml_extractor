@@ -1,4 +1,8 @@
 require "panatrans/kml_extractor/version"
+require 'nokogiri'
+require 'open-uri'
+require 'pp'
+require 'cross/track/distance'
 
 module Panatrans
   module KmlExtractor
@@ -109,6 +113,140 @@ module Panatrans
         return shape
       end
     end
+
+
+
+    class RoutePlacemark
+
+      attr_reader :id, :placemark, :name, :desc, :shape
+
+      def initialize(id, kml_route_placemark)
+        @placemark = kml_route_placemark
+        @id = id
+        @name = @placemark.css('name').text
+        @desc = @placemark.css('description').text
+        @shape = ShapeList.new(id, @placemark)
+      end
+
+      def to_gtfs_route_row
+        {
+          route_id: @id.to_s,
+          agency_id: 'mibus',
+          route_short_name: @name,
+          route_long_name: @name,
+          route_desc: @desc,
+          route_type: 3
+        }
+      end
+
+      def name=(value)
+        @name = value
+      end
+
+      # {
+      # route_id: id
+      # service_id: 'mibus'
+      # trip_id: trip_+ id
+      # trip_headsign: 2 latest of parts of the route name
+      # trip_direction_id: 0
+      # shape_id: shape_ + id
+      # }
+      def to_gtfs_trip_row
+        route_parts = @name.split('-')
+        headsign = @name
+        if route_parts.count >= 2 then
+          headsign = route_parts[-2] + '-' + route_parts[-1]
+        end
+        {
+          route_id: @id.to_s,
+          service_id: 'mibus',
+          trip_id: 'trip_' + @id.to_s,
+          trip_headsign: headsign,
+          trip_direction_id: 0,
+          shape_id: 'shape_' + @id.to_s
+        }
+      end
+
+      def to_gtfs_shape_rows
+        @shape.to_gtfs_shape_rows
+      end
+
+    end # RoutePlacemark
+
+
+    class StopTimesExtractor
+
+      attr_reader :route, :stop_list
+
+      def initialize(route, stop_list)
+        @route = route
+        @stop_list = stop_list
+      end
+
+      # given two points in {lat, lon} and a radius (in meters)
+      # it returns a box with contains both points and has a padding of the radius
+      # size.
+      # +-----------+
+      # |  x        |
+      # |           |
+      # |         x |
+      # +-----------+
+      #
+      def bounding_box(point1, point2, radius)
+        #puts point1
+        #puts point2
+        radius_lat = radius.to_f / 111194.9
+        radius_lon1 = (radius.to_f / 111194.9) * Math::cos(point1[:lat].to_f.to_rad).abs
+        radius_lon2 = (radius.to_f / 111194.9) * Math::cos(point2[:lat].to_f.to_rad).abs # for small distances probably both radius almost the same...
+        #puts radius_lat
+        #puts radius_lon1
+        #puts radius_lon2
+        lats = [point1[:lat] + radius_lat, point1[:lat] - radius_lat,
+        point2[:lat] + radius_lat, point2[:lat] - radius_lat]
+        lons = [point1[:lon] + radius_lon1, point1[:lon] - radius_lon1,
+        point2[:lon] + radius_lon2, point2[:lon] - radius_lon2]
+        #puts lats
+        #puts lons
+        {max_lat: lats.max, min_lat: lats.min, max_lon: lons.max, min_lon: lons.min}
+      end
+
+      # point = {lat, lon}
+      # rectangle = {min_lat, min_lon, max_lat, max_lon}
+      # returns true or false
+      def is_point_in_rectangle(point, rectangle)
+        if rectangle[:min_lat] > point[:lat] then
+          return false
+        end
+        if rectangle[:max_lat] < point[:lat] then
+          return false
+        end
+        if rectangle[:min_lon] > point[:lon] then
+          return false
+        end
+        if rectangle[:max_lon] < point[:lon] then
+          return false
+        end
+        return true
+      end
+
+      # gets the colosest point to a segment from an array of points
+      # segment_start and segment_end = {lat:, lon:}
+      # pointArr is an array with points with lat, and lon
+      def closest_point_to_segment_at_right(point_arr, segment_start, segment_end)
+        if point_arr.count < 1 then
+          return nil
+        end
+        min_distance = 400000000.0 #arbitrarily large distance in meters
+        closest_point = nil
+        point_arr.each do |point|
+          d = Cross::Track::Distance.cross_track_distance(segment_start,segment_end,point)
+          if (d>0) && (d<min_distance) then
+            closest_point = point
+          end
+        end #each
+        return closest_point
+      end
+    end # class
 
 
   end

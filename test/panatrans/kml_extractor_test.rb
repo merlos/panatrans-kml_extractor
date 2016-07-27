@@ -13,9 +13,14 @@ class Panatrans::KmlExtractorTest < Minitest::Test
     @kml_stop_folder = nil
 
     @kml.css('Folder').each do |folder|
+      if folder.at_css('name') == 'Rutas_por_parada' then
+        @kml_stop_folder = folder
+      end
 
     end #kml folder
     @s = ::Panatrans::KmlExtractor::StopPlacemark.new(1, @kml_stop_placemark)
     @r = ::Panatrans::KmlExtractor::RoutePlacemark.new(1, @kml_route_placemark)
   end #setup
+
+
 end
