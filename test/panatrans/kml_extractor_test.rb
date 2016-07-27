@@ -212,7 +212,7 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         # The segment goes on the other direction
         point_arr5 = [{lat:-1.0, lon: 1.0}, {lat: -2.0, lon: 2.0},{lat:0.5,lon:0.5}]
         r5 = ste.closest_point_to_segment_at_right(point_arr5,segment_end, segment_start)
-        assert_equal(0.5, r5[:lat])
+        assert_equal 0.5, r5[:lat]
         assert_equal 0.5, r5[:lon]
       end
 
