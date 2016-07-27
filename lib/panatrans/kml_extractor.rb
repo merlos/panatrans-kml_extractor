@@ -3,7 +3,7 @@ require "panatrans/kml_extractor/version"
 module Panatrans
   module KmlExtractor
 
-    
+
     class StopPlacemark
       attr_reader :id, :placemark, :name, :lat, :lon
 
@@ -54,6 +54,61 @@ module Panatrans
     end
 
 
+    class ShapePoint
+      attr_reader :shape_id, :sequence, :lat, :lon
+
+      def initialize(shape_id,sequence,lat,lon)
+        @shape_id = shape_id
+        @sequence = sequence
+        @lat = lat
+        @lon = lon
+      end
+
+      def coords
+        {lat: @lat, lon: @lon}
+      end
+
+      def to_gtfs_shape_row
+        {shape_id: @shape_id,
+          shape_pt_lat: @lat,
+          shape_pt_lon: @lon,
+          shape_pt_sequence: @sequence
+        }
+      end
+    end
+
+    #
+    #
+    class ShapeList < Array
+      #
+      # id: route_id
+      # coordinates
+      def initialize(id, kml_route_placemark)
+        @id = id
+        @placemark = kml_route_placemark
+        coordinates = @placemark.at_css('coordinates').content
+        @sequence = 1
+        coordinates.split(' ').each do |coordinate|
+          (lon,lat) = coordinate.split(',')
+          lat = lat.to_f
+          lon = lon.to_f
+          self << ShapePoint.new(self.shape_id, @sequence,lat, lon)
+          @sequence = @sequence + 1
+        end # coordinates each
+      end
+
+      def shape_id
+        'shape_' + @id.to_s
+      end
+
+      def to_gtfs_shape_rows
+        shape = []
+        self.each do |shape_point|
+          shape.push(shape_point.to_gtfs_shape_row)
+        end
+        return shape
+      end
+    end
 
 
   end
