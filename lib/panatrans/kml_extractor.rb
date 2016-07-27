@@ -249,6 +249,14 @@ module Panatrans
       end
     end # class
 
-
+    #
+    # Extracts the StopTimes from the route with a radius in meters
+    def run(radius)
+      segment_start = nil
+      segment_end = nil
+      route.shape.each do |shape_point|
+        puts shape_point
+      end
+    end
   end
 end

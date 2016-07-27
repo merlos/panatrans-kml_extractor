@@ -215,5 +215,24 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         assert_equal 0.5, r5[:lat]
         assert_equal 0.5, r5[:lon]
       end
+      def test_stop_time_extractor_run
+        run_kml = Nokogiri::XML(open('./test/fixtures/run_test.kml'))
+        sl = ::Panatrans::KmlExtractor::StopPlacemarkList.new
+        kml_r1 = nil
+        run_kml.css('Folder').each do |folder|
+          if folder.at_css('name').content == 'Rutas_por_parada' then
+            sl.add_stop_folder(folder)
+          end
+          if folder.at_css('name').content == 'RUTAS_METROBUS_2016' then
+            folder.css('Placemark').each do |placemark|
+              kml_r1 = placemark if placemark.at_css('name').content == 'R1'
+            end
+          end
+        end #run_kml folder
+        route1 = ::Panatrans::KmlExtractor::RoutePlacemark.new(1, kml_r1)
+        #basic checks to confirm file was correctly loaded
+        assert_equal 5,sl.count
+        assert_equal 5, route1.shape.count
+      end
 
 end
