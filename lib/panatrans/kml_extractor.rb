@@ -242,6 +242,7 @@ module Panatrans
           d = Cross::Track::Distance.cross_track_distance(segment_start,segment_end,point)
           if (d>0) && (d<min_distance) then
             closest_point = point
+            min_distance = d
           end
         end #each
         return closest_point
