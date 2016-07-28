@@ -56,6 +56,14 @@ class Panatrans::KmlExtractorTest < Minitest::Test
       assert_equal 9.000000, row[:stop_lat]
     end
 
+    def test_is_stop_in_box
+      box = {min_lat: 8.0, max_lat: 10.0, min_lon: -81.0, max_lon: -79.0}
+      # point is inside
+      assert @s.is_stop_in_box(box)
+      # point is outside
+      box2 = {min_lat: 0.0, max_lat: 10.0, min_lon: 0.0, max_lon: 20.0}
+      assert !@s.is_stop_in_box(box2)
+    end
 
       # StopPlacemarkList tests
       def test_stop_placemark_list_add_stop_placemark

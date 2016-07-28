@@ -34,6 +34,19 @@ module Panatrans
         {lat: @lat, lon: @lon}
       end
 
+      # point = {lat, lon}
+      # rectangle = {min_lat, min_lon, max_lat, max_lon}
+      # returns true or false
+      def is_stop_in_box(rectangle)
+        point = self.coords
+        #puts point
+        return false if rectangle[:min_lat] > point[:lat]
+        return false if rectangle[:max_lat] < point[:lat]
+        return false if rectangle[:min_lon] > point[:lon]
+        return false if rectangle[:max_lon] < point[:lon]
+        return true
+      end
+
     end #class
 
     class StopPlacemarkList < Array
@@ -54,6 +67,12 @@ module Panatrans
       # argument is StopPlacemark
       def includes_stop_placemark (stop_placemark)
         self.any? {|item| item.id == stop_placemark.id}
+      end
+
+      #stops in box
+      #box { min_lat, max_lat}
+      def stops_in_box(box)
+
       end
     end
 
@@ -221,18 +240,10 @@ module Panatrans
       # rectangle = {min_lat, min_lon, max_lat, max_lon}
       # returns true or false
       def is_point_in_rectangle(point, rectangle)
-        if rectangle[:min_lat] > point[:lat] then
-          return false
-        end
-        if rectangle[:max_lat] < point[:lat] then
-          return false
-        end
-        if rectangle[:min_lon] > point[:lon] then
-          return false
-        end
-        if rectangle[:max_lon] < point[:lon] then
-          return false
-        end
+        return false if rectangle[:min_lat] > point[:lat]
+        return false if rectangle[:max_lat] < point[:lat]
+        return false if rectangle[:min_lon] > point[:lon]
+        return false if rectangle[:max_lon] < point[:lon]
         return true
       end
 
@@ -278,7 +289,8 @@ module Panatrans
          if segment_start.nil? then
            segment_start = shape_point
            box = self.point_bounding_box(shape_point.coords, radius)
-           #self.closest_point_to_segment_at_right()
+           #self.
+           #self.closest_point()
          else
            segment_start = segment_end
            segment_end = shape_point
