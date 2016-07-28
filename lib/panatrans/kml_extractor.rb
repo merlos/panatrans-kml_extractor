@@ -210,6 +210,13 @@ module Panatrans
         {max_lat: lats.max, min_lat: lats.min, max_lon: lons.max, min_lon: lons.min}
       end
 
+      # retuns the bounding box of the point
+      # radius in meters
+      def point_bounding_box(point,radius)
+        self.bounding_box(point, point, radius)
+      end
+
+
       # point = {lat, lon}
       # rectangle = {min_lat, min_lon, max_lat, max_lon}
       # returns true or false
@@ -229,13 +236,26 @@ module Panatrans
         return true
       end
 
+      def closest_point(point_arr, point)
+        return nil if point_arr.nil?
+        return nil if point_arr.count < 1
+        min_d = 4000000000.0
+        closest = nil
+        point_arr.each do |pt|
+          d = Haversine.distance([pt[:lat],pt[:lon]], [point[:lat],point[:lon]])
+          if d.to_m < min_d then
+            min_d = d.to_m
+            closest = pt
+          end
+        end
+        return closest
+      end
+
       # gets the colosest point to a segment from an array of points
       # segment_start and segment_end = {lat:, lon:}
       # pointArr is an array with points with lat, and lon
       def closest_point_to_segment_at_right(point_arr, segment_start, segment_end)
-        if point_arr.count < 1 then
-          return nil
-        end
+        return nil if point_arr.count < 1
         min_distance = 400000000.0 #arbitrarily large distance in meters
         closest_point = nil
         point_arr.each do |point|
@@ -247,16 +267,25 @@ module Panatrans
         end #each
         return closest_point
       end
-    end # class
+      #
+      # Extracts the StopTimes from the route with a radius in meters
+      def run(radius)
+        segment_start = nil
+       segment_end = nil
+       route.shape.each do |shape_point|
+         #pp shape_point.inspect
+         #first point
+         if segment_start.nil? then
+           segment_start = shape_point
+           box = self.point_bounding_box(shape_point.coords, radius)
+           #self.closest_point_to_segment_at_right()
+         else
+           segment_start = segment_end
+           segment_end = shape_point
+         end
+       end #shape_point
 
-    #
-    # Extracts the StopTimes from the route with a radius in meters
-    def run(radius)
-      segment_start = nil
-      segment_end = nil
-      route.shape.each do |shape_point|
-        puts shape_point
       end
-    end
+    end # class
   end
 end

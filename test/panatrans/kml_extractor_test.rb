@@ -160,6 +160,18 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         assert_equal(-1.0, box[:min_lon])
       end
 
+      def test_point_bounding_box
+        radius = 111194.9 # meters  = 1 degree in latitude.
+        p0 = {lat: 0.0, lon: 0.0} # +/-1 deg in lat, +/-1 in lon
+        ste = ::Panatrans::KmlExtractor::StopTimesExtractor.new(nil,nil)
+        box = ste.point_bounding_box(p0,radius)
+        #puts box
+        assert_equal 1.0, box[:max_lat]
+        assert_equal(-1.0, box[:min_lat])
+        assert_equal 1.0, box[:max_lon]
+        assert_equal(-1.0, box[:min_lon])
+      end
+
       def test_is_point_in_rectangle
         ste = ::Panatrans::KmlExtractor::StopTimesExtractor.new(nil,nil)
         box = {min_lat: -2, max_lat: 2, min_lon: -2, max_lon: 2}
@@ -179,6 +191,22 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         assert !ste.is_point_in_rectangle(p_out2, box)
         assert !ste.is_point_in_rectangle(p_out3, box)
         assert !ste.is_point_in_rectangle(p_out4, box)
+      end
+
+      def test_closest_point
+        ste = ::Panatrans::KmlExtractor::StopTimesExtractor.new(nil,nil)
+        point_arr1 = [{lat:1.0, lon: 1.0}, {lat: 2.0, lon: 2.0}]
+        point = {lat:0.0, lon: 0.0}
+        # test nil
+        r1 = ste.closest_point(nil, point)
+        assert_nil r1
+
+        r2 = ste.closest_point([],point)
+        assert_nil r2
+
+        r3 = ste.closest_point(point_arr1, point)
+        assert_equal 1.0, r3[:lat]
+        assert_equal 1.0, r3[:lon]
       end
 
       def test_closest_point_in_segment
@@ -215,6 +243,7 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         assert_equal 0.5, r5[:lat]
         assert_equal 0.5, r5[:lon]
       end
+
       def test_stop_time_extractor_run
         run_kml = Nokogiri::XML(open('./test/fixtures/run_test.kml'))
         sl = ::Panatrans::KmlExtractor::StopPlacemarkList.new
@@ -233,6 +262,9 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         #basic checks to confirm file was correctly loaded
         assert_equal 5,sl.count
         assert_equal 5, route1.shape.count
+        ste = ::Panatrans::KmlExtractor::StopTimesExtractor.new(route1,sl)
+        radius = 111194.9 # meters  = 1 degree in latitude.
+        ste.run(radius)
       end
 
 end
