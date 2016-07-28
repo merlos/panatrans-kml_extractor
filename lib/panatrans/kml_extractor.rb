@@ -10,15 +10,38 @@ module Panatrans
 
     class StopPlacemark
       attr_reader :id, :placemark, :name, :lat, :lon
+      attr_writer :id, :placemark, :name, :lat, :lon
 
-      def initialize(id, kml_stop_placemark)
-        @placemark = kml_stop_placemark
-        @id = id
-        @name = @placemark.css('name').text
-        coordinates = @placemark.at_css('coordinates').content
-        (lon,lat) = coordinates.split(',')
-        @lat = lat.to_f
-        @lon = lon.to_f
+      def coords=(point)
+        @lat = point[:lat]
+        @lon = point[:lon]
+      end
+
+      # point { lat:, lon:}
+      def self.new_from_point(id, point)
+        s = self.new
+        s.id = id
+        s.name = 'stop_' + id.to_s
+        s.lat = point[:lat]
+        s.lon = point[:lon]
+        return s
+      end
+      def self.new_from_kml(id, kml_stop_placemark)
+        s = self.new
+
+        s.placemark = kml_stop_placemark
+        s.id = id
+        if s.placemark != nil
+          s.name = s.placemark.css('name').text
+          coordinates = s.placemark.at_css('coordinates').content
+          (lon,lat) = coordinates.split(',')
+          s.lat = lat.to_f
+          s.lon = lon.to_f
+          return s
+        end
+      end
+
+      def initialize
       end
 
       def to_gtfs_stop_row
@@ -52,7 +75,7 @@ module Panatrans
     class StopPlacemarkList < Array
 
       def add_stop_placemark(id, kml_stop_placemark)
-        self << StopPlacemark.new(id, kml_stop_placemark)
+        self << StopPlacemark.new_from_kml(id, kml_stop_placemark)
       end
 
       def add_stop_folder(kml_stop_folder)
@@ -240,14 +263,14 @@ module Panatrans
       end
 
 
-      # point = {lat, lon}
+      # point.lat point.lon}
       # rectangle = {min_lat, min_lon, max_lat, max_lon}
       # returns true or false
       def is_point_in_rectangle(point, rectangle)
-        return false if rectangle[:min_lat] > point[:lat]
-        return false if rectangle[:max_lat] < point[:lat]
-        return false if rectangle[:min_lon] > point[:lon]
-        return false if rectangle[:max_lon] < point[:lon]
+        return false if rectangle[:min_lat] > point.lat
+        return false if rectangle[:max_lat] < point.lat
+        return false if rectangle[:min_lon] > point.lon
+        return false if rectangle[:max_lon] < point.lon
         return true
       end
 
@@ -293,8 +316,8 @@ module Panatrans
          if segment_start.nil? then
            segment_start = shape_point
            box = self.point_bounding_box(shape_point.coords, radius)
-           #self.
-           #self.closest_point()
+           stops_in_box = @stop_list.stops_in_box(box)
+           self.closest_point()
          else
            segment_start = segment_end
            segment_end = shape_point

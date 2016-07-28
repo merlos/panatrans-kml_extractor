@@ -1,4 +1,5 @@
 require 'test_helper'
+require 'panatrans/kml_extractor'
 
 class Panatrans::KmlExtractorTest < Minitest::Test
   def test_that_it_has_a_version_number
@@ -24,7 +25,7 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         end
       end
     end #kml folder
-    @s = ::Panatrans::KmlExtractor::StopPlacemark.new(1, @kml_stop_placemark)
+    @s = ::Panatrans::KmlExtractor::StopPlacemark.new_from_kml(1, @kml_stop_placemark)
     @r = ::Panatrans::KmlExtractor::RoutePlacemark.new(1, @kml_route_placemark)
   end #setup
 
@@ -39,14 +40,22 @@ class Panatrans::KmlExtractorTest < Minitest::Test
 
     # StopPlacemark tests
     def test_stop_placemark_constructor
-      s = ::Panatrans::KmlExtractor::StopPlacemark.new(1, @kml_stop_placemark)
+      s = ::Panatrans::KmlExtractor::StopPlacemark.new_from_kml(1, @kml_stop_placemark)
       assert_equal 'TestStop', s.name
+    end
+
+    def test_stop_placemark_coords_method
+      r = ::Panatrans::KmlExtractor::StopPlacemark.new
+      r.coords = {lat: 1.0, lon:2.0}
+      assert_equal 1.0, r.lat
+      assert_equal 2.0, r.lon
     end
 
     def test_route_placemark_constructor
       r = ::Panatrans::KmlExtractor::RoutePlacemark.new(1, @kml_route_placemark)
       assert_equal 'TestRoute', r.name
     end
+
 
     def test_stop_placemark_to_gtfs_stop_row
       row = @s.to_gtfs_stop_row
@@ -97,7 +106,7 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         assert_equal 'TestStop', stops_in_box[0].name
       end
 
-      
+
       # Coodinates tests
       def test_shape_point_constructor
         pt = ::Panatrans::KmlExtractor::ShapePoint.new('shape_1',1,8.1,9.1)
@@ -194,14 +203,14 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         ste = ::Panatrans::KmlExtractor::StopTimesExtractor.new(nil,nil)
         box = {min_lat: -2, max_lat: 2, min_lon: -2, max_lon: 2}
         # points inside
-        p_in1 = {lat: -1.0, lon: -1.0}
-        p_in2 = {lat: 1.0, lon: 1.0 }
+        p_in1 = ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1, {lat: -1.0, lon: -1.0})
+        p_in2 = ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(2, {lat: 1.0, lon: 1.0 })
 
         # points outside
-        p_out1 = {lat: -3.0, lon: 1.0 }
-        p_out2 = {lat: 3.0, lon: 1.0 }
-        p_out3 = {lat: 1.0, lon: -3.0 }
-        p_out4 = {lat: 1.0, lon: 3.0 }
+        p_out1 = ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(10,{lat: -3.0, lon: 1.0})
+        p_out2 = ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(11,{lat: 3.0, lon: 1.0 })
+        p_out3 = ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(12,{lat: 1.0, lon: -3.0 })
+        p_out4 = ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(13,{lat: 1.0, lon: 3.0 })
 
         assert ste.is_point_in_rectangle(p_in1, box)
         assert ste.is_point_in_rectangle(p_in2, box)
