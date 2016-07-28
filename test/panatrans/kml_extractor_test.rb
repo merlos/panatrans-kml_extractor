@@ -80,14 +80,24 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         assert_equal 4, sl.count
       end
 
-      def test_stop_placemark_includes_stop_placemark
+      def test_stop_placemark_list_includes_stop_placemark
         sl = ::Panatrans::KmlExtractor::StopPlacemarkList.new
         sl.add_stop_folder(@kml_stop_folder)
         assert_equal 4, sl.count
         assert sl.includes_stop_placemark(@s)
       end
 
+      def test_stop_placemark_list_stops_in_box
+        box = {min_lat: 8.999999, max_lat: 9.000001, min_lon: -80.01000, max_lon: -79.999}
+        sl = ::Panatrans::KmlExtractor::StopPlacemarkList.new
+        sl.add_stop_folder(@kml_stop_folder)
+        stops_in_box = sl.stops_in_box(box)
+        #pp stops_in_box
+        assert_equal 1, stops_in_box.count
+        assert_equal 'TestStop', stops_in_box[0].name
+      end
 
+      
       # Coodinates tests
       def test_shape_point_constructor
         pt = ::Panatrans::KmlExtractor::ShapePoint.new('shape_1',1,8.1,9.1)

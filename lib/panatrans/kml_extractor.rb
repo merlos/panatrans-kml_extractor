@@ -69,13 +69,17 @@ module Panatrans
         self.any? {|item| item.id == stop_placemark.id}
       end
 
-      #stops in box
-      #box { min_lat, max_lat}
+      # returns the StoPlacemarkList of the stops that are within the
+      # box
+      #box has the format { min_lat, max_lat, min_lon, max_lon}
       def stops_in_box(box)
-
+        in_box = StopPlacemarkList.new
+        self.each do |stop|
+          in_box << stop if stop.is_stop_in_box(box)
+        end
+        in_box
       end
     end
-
 
     class ShapePoint
       attr_reader :shape_id, :sequence, :lat, :lon
