@@ -45,7 +45,7 @@ class Panatrans::KmlExtractorTest < Minitest::Test
     end
 
     def test_stop_placemark_coords_method
-      r = ::Panatrans::KmlExtractor::StopPlacemark.new
+      r = ::Panatrans::KmlExtractor::StopPlacemark.new(9.0, 8.0)
       r.coords = {lat: 1.0, lon:2.0}
       assert_equal 1.0, r.lat
       assert_equal 2.0, r.lon
@@ -176,8 +176,8 @@ class Panatrans::KmlExtractorTest < Minitest::Test
       #StopTimesExtractor
       def test_bounding_box
         radius = 111194.9 # meters  = 1 degree in latitude.
-        p0 = {lat: 0.0, lon: 0.0} # +/-1 deg in lat, +/-1 in lon
-        p1 = {lat: 60.0, lon: 1.0} # 1 deg in lat, +/- 0.5 (cos(60)) in lon
+        p0 = ::Panatrans::KmlExtractor::LatLon.new(0.0, 0.0) # +/-1 deg in lat, +/-1 in lon
+        p1 = ::Panatrans::KmlExtractor::LatLon.new(60.0,1.0) # 1 deg in lat, +/- 0.5 (cos(60)) in lon
         ste = ::Panatrans::KmlExtractor::StopTimesExtractor.new(nil,nil)
         box = ste.bounding_box(p0,p1,radius)
         #puts box
@@ -189,7 +189,7 @@ class Panatrans::KmlExtractorTest < Minitest::Test
 
       def test_point_bounding_box
         radius = 111194.9 # meters  = 1 degree in latitude.
-        p0 = {lat: 0.0, lon: 0.0} # +/-1 deg in lat, +/-1 in lon
+        p0 = ::Panatrans::KmlExtractor::LatLon.new(0.0, 0.0) # +/-1 deg in lat, +/-1 in lon
         ste = ::Panatrans::KmlExtractor::StopTimesExtractor.new(nil,nil)
         box = ste.point_bounding_box(p0,radius)
         #puts box
@@ -222,8 +222,11 @@ class Panatrans::KmlExtractorTest < Minitest::Test
 
       def test_closest_point
         ste = ::Panatrans::KmlExtractor::StopTimesExtractor.new(nil,nil)
-        point_arr1 = [{lat:1.0, lon: 1.0}, {lat: 2.0, lon: 2.0}]
-        point = {lat:0.0, lon: 0.0}
+        point_arr1 = [
+          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1,{lat:1.0, lon: 1.0}),
+          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(2,{lat: 2.0, lon: 2.0})
+        ]
+        point = ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1,{lat: 0.0, lon: 0.0})
         # test nil
         r1 = ste.closest_point(nil, point)
         assert_nil r1
@@ -232,43 +235,63 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         assert_nil r2
 
         r3 = ste.closest_point(point_arr1, point)
-        assert_equal 1.0, r3[:lat]
-        assert_equal 1.0, r3[:lon]
+        assert_equal 1.0, r3.lat
+        assert_equal 1.0, r3.lon
       end
 
       def test_closest_point_in_segment
         ste = ::Panatrans::KmlExtractor::StopTimesExtractor.new(nil,nil)
-        segment_start = {lat:0.0, lon: 0.0}
-        segment_end = {lat:0.0, lon: 10.0}
+        # lat 0.0, lon 0.0
+        segment_start = ::Panatrans::KmlExtractor::ShapePoint.new('shape_id', 0, 0.0, 0.0)
+        # lat 0.0, lon 0.0
+        segment_end = ::Panatrans::KmlExtractor::ShapePoint.new('shape_id', 1, 0.0, 10.0)
 
         #All are on the left
-        point_arr1 = [{lat:1.0, lon: 1.0}, {lat: 2.0, lon: 2.0}]
+        point_arr1 = [
+            ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1, {lat:1.0, lon: 1.0}),
+            ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(2, {lat: 2.0, lon: 2.0})
+          ]
         r1 = ste.closest_point_to_segment_at_right(point_arr1,segment_start, segment_end)
         assert_nil r1
 
         #only the first point is on the right
-        point_arr2 = [{lat:-1.0, lon: 1.0}, {lat: 2.0, lon: 2.0}]
+        point_arr2 = [
+          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1, {lat:-1.0, lon: 1.0}),
+          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(2, {lat: 2.0, lon: 2.0})
+        ]
         r2 = ste.closest_point_to_segment_at_right(point_arr2,segment_start, segment_end)
-        assert_equal(-1.0, r2[:lat])
-        assert_equal 1.0, r2[:lon]
+        assert_equal(-1.0, r2.lat)
+        assert_equal 1.0, r2.lon
 
         # Two points on the right, select closer
-        point_arr3 = [{lat:-1.0, lon: 1.0}, {lat: -2.0, lon: 2.0}, {lat: -3.0,lon: 3.0}]
+        point_arr3 = [
+          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1,{lat:-1.0, lon: 1.0}),
+          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(2,{lat: -2.0, lon: 2.0}),
+          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(4,{lat: -3.0,lon: 3.0})
+        ]
         r3 = ste.closest_point_to_segment_at_right(point_arr3,segment_start, segment_end)
-        assert_equal(-1.0, r3[:lat])
-        assert_equal 1.0, r3[:lon]
+        assert_equal(-1.0, r3.lat)
+        assert_equal 1.0, r3.lon
 
         # Two points on the right, but there is one on the left closer
-        point_arr4 = [{lat:-1.0, lon: 1.0}, {lat: -2.0, lon: 2.0},{lat:0.5,lon:0.5}]
+        point_arr4 = [
+          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1, {lat:-1.0, lon: 1.0}),
+          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(2, {lat: -2.0, lon: 2.0}),
+          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(3, {lat:0.5,lon:0.5})
+        ]
         r4 = ste.closest_point_to_segment_at_right(point_arr4,segment_start, segment_end)
-        assert_equal(-1.0, r4[:lat])
-        assert_equal 1.0, r4[:lon]
+        assert_equal(-1.0, r4.lat)
+        assert_equal 1.0, r4.lon
 
         # The segment goes on the other direction
-        point_arr5 = [{lat:-1.0, lon: 1.0}, {lat: -2.0, lon: 2.0},{lat:0.5,lon:0.5}]
+        point_arr5 = [
+          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1,{lat:-1.0, lon: 1.0}),
+          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1,{lat: -2.0, lon: 2.0}),
+          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1,{lat:0.5,lon:0.5})
+        ]
         r5 = ste.closest_point_to_segment_at_right(point_arr5,segment_end, segment_start)
-        assert_equal 0.5, r5[:lat]
-        assert_equal 0.5, r5[:lon]
+        assert_equal 0.5, r5.lat
+        assert_equal 0.5, r5.lon
       end
 
       def test_stop_time_extractor_run

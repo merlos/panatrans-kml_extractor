@@ -7,41 +7,50 @@ require 'cross/track/distance'
 module Panatrans
   module KmlExtractor
 
+    class LatLon
+      attr_reader :lat, :lon
+      attr_writer :lat, :lon
 
-    class StopPlacemark
-      attr_reader :id, :placemark, :name, :lat, :lon
-      attr_writer :id, :placemark, :name, :lat, :lon
-
-      def coords=(point)
-        @lat = point[:lat]
-        @lon = point[:lon]
+      def initialize(lat,lon)
+        @lat = lat
+        @lon = lon
       end
 
-      # point { lat:, lon:}
+      def coords
+        return {lat: @lat, lon: @lon}
+      end
+
+      def coords=(pt)
+        @lat = pt[:lat]
+        @lon = pt[:lon]
+      end
+    end
+
+    class StopPlacemark < LatLon
+      # additional
+      attr_reader :id, :placemark, :name
+      attr_writer :id, :placemark, :name
+
+
+      # id is the stop placemark id
+      # point is a hash {lat:, lon:}
       def self.new_from_point(id, point)
-        s = self.new
+        s = self.new(point[:lat], point[:lon])
         s.id = id
         s.name = 'stop_' + id.to_s
-        s.lat = point[:lat]
-        s.lon = point[:lon]
         return s
       end
-      def self.new_from_kml(id, kml_stop_placemark)
-        s = self.new
 
+      def self.new_from_kml(id, kml_stop_placemark)
+        return nil if kml_stop_placemark.nil?
+        name = kml_stop_placemark.css('name').text
+        coordinates = kml_stop_placemark.at_css('coordinates').content
+        (lon,lat) = coordinates.split(',')
+        s = self.new(lat.to_f, lon.to_f)
+        s.name = name
         s.placemark = kml_stop_placemark
         s.id = id
-        if s.placemark != nil
-          s.name = s.placemark.css('name').text
-          coordinates = s.placemark.at_css('coordinates').content
-          (lon,lat) = coordinates.split(',')
-          s.lat = lat.to_f
-          s.lon = lon.to_f
-          return s
-        end
-      end
-
-      def initialize
+        return s
       end
 
       def to_gtfs_stop_row
@@ -53,9 +62,6 @@ module Panatrans
         }
       end
 
-      def coords
-        {lat: @lat, lon: @lon}
-      end
 
       # point = {lat, lon}
       # rectangle = {min_lat, min_lon, max_lat, max_lon}
@@ -107,7 +113,7 @@ module Panatrans
     class ShapePoint
       attr_reader :shape_id, :sequence, :lat, :lon
 
-      def initialize(shape_id,sequence,lat,lon)
+      def initialize(shape_id, sequence, lat, lon)
         @shape_id = shape_id
         @sequence = sequence
         @lat = lat
@@ -229,7 +235,7 @@ module Panatrans
         @stop_list = stop_list
       end
 
-      # given two points in {lat, lon} and a radius (in meters)
+      # given two points in (point.lat, point.lon} and a radius (in meters)
       # it returns a box with contains both points and has a padding of the radius
       # size.
       # +-----------+
@@ -242,15 +248,15 @@ module Panatrans
         #puts point1
         #puts point2
         radius_lat = radius.to_f / 111194.9
-        radius_lon1 = (radius.to_f / 111194.9) * Math::cos(point1[:lat].to_f.to_rad).abs
-        radius_lon2 = (radius.to_f / 111194.9) * Math::cos(point2[:lat].to_f.to_rad).abs # for small distances probably both radius almost the same...
+        radius_lon1 = (radius.to_f / 111194.9) * Math::cos(point1.lat.to_f.to_rad).abs
+        radius_lon2 = (radius.to_f / 111194.9) * Math::cos(point2.lat.to_f.to_rad).abs # for small distances probably both radius almost the same...
         #puts radius_lat
         #puts radius_lon1
         #puts radius_lon2
-        lats = [point1[:lat] + radius_lat, point1[:lat] - radius_lat,
-        point2[:lat] + radius_lat, point2[:lat] - radius_lat]
-        lons = [point1[:lon] + radius_lon1, point1[:lon] - radius_lon1,
-        point2[:lon] + radius_lon2, point2[:lon] - radius_lon2]
+        lats = [point1.lat + radius_lat, point1.lat - radius_lat,
+        point2.lat + radius_lat, point2.lat - radius_lat]
+        lons = [point1.lon + radius_lon1, point1.lon - radius_lon1,
+        point2.lon + radius_lon2, point2.lon - radius_lon2]
         #puts lats
         #puts lons
         {max_lat: lats.max, min_lat: lats.min, max_lon: lons.max, min_lon: lons.min}
@@ -280,7 +286,7 @@ module Panatrans
         min_d = 4000000000.0
         closest = nil
         point_arr.each do |pt|
-          d = Haversine.distance([pt[:lat],pt[:lon]], [point[:lat],point[:lon]])
+          d = Haversine.distance([pt.lat,pt.lon], [point.lat,point.lon])
           if d.to_m < min_d then
             min_d = d.to_m
             closest = pt
@@ -290,14 +296,14 @@ module Panatrans
       end
 
       # gets the colosest point to a segment from an array of points
-      # segment_start and segment_end = {lat:, lon:}
+      # segment_start and segment_end = Point
       # pointArr is an array with points with lat, and lon
       def closest_point_to_segment_at_right(point_arr, segment_start, segment_end)
         return nil if point_arr.count < 1
         min_distance = 400000000.0 #arbitrarily large distance in meters
         closest_point = nil
         point_arr.each do |point|
-          d = Cross::Track::Distance.cross_track_distance(segment_start,segment_end,point)
+          d = Cross::Track::Distance.cross_track_distance(segment_start.coords,segment_end.coords,point.coords)
           if (d>0) && (d<min_distance) then
             closest_point = point
             min_distance = d
@@ -309,15 +315,15 @@ module Panatrans
       # Extracts the StopTimes from the route with a radius in meters
       def run(radius)
         segment_start = nil
-       segment_end = nil
-       route.shape.each do |shape_point|
-         #pp shape_point.inspect
-         #first point
-         if segment_start.nil? then
-           segment_start = shape_point
-           box = self.point_bounding_box(shape_point.coords, radius)
-           stops_in_box = @stop_list.stops_in_box(box)
-           self.closest_point()
+        segment_end = nil
+        route.shape.each do |shape_point|
+          #pp shape_point.inspect
+          #first point
+          if segment_start.nil? then
+            segment_start = shape_point
+            box = self.point_bounding_box(shape_point, radius)
+            stops_in_box = @stop_list.stops_in_box(box)
+            #self.closest_point()
          else
            segment_start = segment_end
            segment_end = shape_point
