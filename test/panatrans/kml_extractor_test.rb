@@ -7,11 +7,15 @@ class Panatrans::KmlExtractorTest < Minitest::Test
   end
 
   def setup
+    #radius used in tests
+    @radius = 111194.9 # meters  = 1 degree in latitude.
+
     @kml_string = File.open('test/fixtures/test.kml', 'r') { |f| f.read }
     @kml = Nokogiri::XML(open('./test/fixtures/test.kml'))
     @kml_stop_placemark = nil
     @kml_route_placemark = nil
     @kml_stop_folder = nil
+    @kml_route_folder = nil
     @kml.css('Folder').each do |folder|
       if folder.at_css('name').content == 'Rutas_por_parada' then
         @kml_stop_folder = folder
@@ -20,6 +24,7 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         end
       end
       if folder.at_css('name').content == 'RUTAS_METROBUS_2016' then
+        @kml_route_folder = folder
         folder.css('Placemark').each do |placemark|
           @kml_route_placemark = placemark if placemark.at_css('name').content == 'TestRoute'
         end
@@ -172,14 +177,20 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         assert_equal 2, row[:shape_pt_sequence]
       end
 
+      # RoutePlacemarkList
+      def test_route_placemark_list
+        rpl = ::Panatrans::KmlExtractor::RoutePlacemarkList.new
+        rpl.add_route_folder(@kml_route_folder)
+        assert 3, rpl.count
+      end
 
       #StopTimesExtractor
       def test_bounding_box
-        radius = 111194.9 # meters  = 1 degree in latitude.
+
         p0 = ::Panatrans::KmlExtractor::LatLon.new(0.0, 0.0) # +/-1 deg in lat, +/-1 in lon
         p1 = ::Panatrans::KmlExtractor::LatLon.new(60.0,1.0) # 1 deg in lat, +/- 0.5 (cos(60)) in lon
         ste = ::Panatrans::KmlExtractor::StopTimesExtractor.new(nil,nil)
-        box = ste.bounding_box(p0,p1,radius)
+        box = ste.bounding_box(p0,p1,@radius)
         #puts box
         assert_equal 61.0, box[:max_lat]
         assert_equal(-1.0, box[:min_lat])
@@ -188,10 +199,10 @@ class Panatrans::KmlExtractorTest < Minitest::Test
       end
 
       def test_point_bounding_box
-        radius = 111194.9 # meters  = 1 degree in latitude.
+
         p0 = ::Panatrans::KmlExtractor::LatLon.new(0.0, 0.0) # +/-1 deg in lat, +/-1 in lon
         ste = ::Panatrans::KmlExtractor::StopTimesExtractor.new(nil,nil)
-        box = ste.point_bounding_box(p0,radius)
+        box = ste.point_bounding_box(p0,@radius)
         #puts box
         assert_equal 1.0, box[:max_lat]
         assert_equal(-1.0, box[:min_lat])
@@ -313,8 +324,98 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         assert_equal 5,sl.count
         assert_equal 5, route1.shape.count
         ste = ::Panatrans::KmlExtractor::StopTimesExtractor.new(route1,sl)
-        radius = 111194.9 # meters  = 1 degree in latitude.
-        ste.run(radius)
+
+        ste.run(@radius)
+        assert_equal 3, ste.route_stops.count
+        assert_equal 1, ste.route_stops[0].id
+        assert_equal 3, ste.route_stops[1].id
+        assert_equal 5, ste.route_stops[2].id
+      end
+
+      def test_to_gtfs_stop_times_row
+        ##------ Repeated code ---
+        run_kml = Nokogiri::XML(open('./test/fixtures/run_test.kml'))
+        sl = ::Panatrans::KmlExtractor::StopPlacemarkList.new
+        kml_r1 = nil
+        run_kml.css('Folder').each do |folder|
+          if folder.at_css('name').content == 'Rutas_por_parada' then
+            sl.add_stop_folder(folder)
+          end
+          if folder.at_css('name').content == 'RUTAS_METROBUS_2016' then
+            folder.css('Placemark').each do |placemark|
+              kml_r1 = placemark if placemark.at_css('name').content == 'R1'
+            end
+          end
+        end #run_kml folder
+        route1 = ::Panatrans::KmlExtractor::RoutePlacemark.new(1, kml_r1)
+        #basic checks to confirm file was correctly loaded
+        assert_equal 5,sl.count
+        assert_equal 5, route1.shape.count
+        ste = ::Panatrans::KmlExtractor::StopTimesExtractor.new(route1,sl)
+        ste.run(@radius)
+        assert_equal 3, ste.route_stops.count
+        # -- end of repeated code --
+        stop_times = ste.to_gtfs_stop_times_rows
+        assert_equal "trip_1", stop_times[0][:trip_id]
+        assert_equal 1, stop_times[0][:stop_id]
+        assert_equal 2, stop_times[1][:stop_sequence]
+        assert_equal 5, stop_times[2][:stop_id]
+      end
+
+      def test_kml_file_constructor
+        kml_file_path = './test/fixtures/run_test.kml'
+        kml_file = ::Panatrans::KmlExtractor::KmlFile.new(kml_file_path)
+        assert_equal 5, kml_file.stop_list.count
+        assert_equal 1, kml_file.route_list.count
+
+        kml_file_path = './test/fixtures/test.kml'
+        kml_file = ::Panatrans::KmlExtractor::KmlFile.new(kml_file_path)
+        assert_equal 4, kml_file.stop_list.count
+        assert_equal 3, kml_file.route_list.count
+      end
+
+      def test_kml_gtfs_methods
+        kml_file_path = './test/fixtures/run_test.kml'
+        kml_file = ::Panatrans::KmlExtractor::KmlFile.new(kml_file_path)
+
+        stops = kml_file.gtfs_stops
+        assert_equal 5, stops.count
+        # check one of the rows
+        assert_equal 0.0, stops[4][:stop_lat]
+        assert_equal 4.0, stops[4][:stop_lon]
+        assert_equal "5", stops[4][:stop_id]
+        routes = kml_file.gtfs_routes
+        #pp routes
+        # check the route
+        assert_equal 1, routes.count
+        assert_equal 'R1', routes[0][:route_short_name]
+        assert_equal '1', routes[0][:route_id]
+
+        trips = kml_file.gtfs_trips
+        #pp trips
+        # check route trips
+        assert_equal 1, trips.count
+        assert_equal 'trip_1', trips[0][:trip_id]
+        assert_equal '1', trips[0][:route_id]
+
+        shapes = kml_file.gtfs_shapes
+        #pp shapes
+        assert_equal 5, shapes.count
+        assert_equal 0.00, shapes[0][:shape_pt_lat]
+        assert_equal 1.00, shapes[1][:shape_pt_lon]
+
+        stop_times = kml_file.gtfs_stop_times(@radius)
+        assert_equal 3, stop_times.count
+        assert_equal 1, stop_times[0][:stop_id]
+        assert_equal 3, stop_times[1][:stop_id]
+        assert_equal 5, stop_times[2][:stop_id]
+      end
+
+      def test_stop_time_extractor_run_with_small_radius
+        kml_file_path = './test/fixtures/run_test.kml'
+        kml_file = ::Panatrans::KmlExtractor::KmlFile.new(kml_file_path)
+        s = kml_file.gtfs_stop_times(10)
+        assert_equal 1, s.count
       end
 
 end

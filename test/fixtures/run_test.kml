@@ -38,7 +38,7 @@
 				<name>stop5-R1</name>
 				<description><![CDATA[desc2]]></description>
 				<Point>
-					<coordinates>3.0,-10.0,0.0</coordinates>
+					<coordinates>4.0,0.0,0.0</coordinates>
 				</Point>
 			</Placemark>
 

@@ -32,7 +32,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "minitest", "~> 5.0"
 
   spec.add_dependency "nokogiri"
-  spec.add_dependency "open-uri"
-  spec.add_dependency "pp"
   spec.add_dependency "cross-track-distance","~>1.0.0"
 end
