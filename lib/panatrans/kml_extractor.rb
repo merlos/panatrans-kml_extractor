@@ -143,7 +143,7 @@ module Panatrans
       # reverse = true means that the first point in the list of coordinates
       # of the kml_route_placemark is the last point of the route trip. By
       # default is true because MiBus publishes the KML coordinates on reverse
-      # order
+      # order 
       def initialize(id, kml_route_placemark, reverse = true)
         @id = id
         @placemark = kml_route_placemark

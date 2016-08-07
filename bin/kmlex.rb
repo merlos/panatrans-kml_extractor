@@ -55,10 +55,10 @@ puts "Got #{shapes.count} shapes..."
 to_csv(shapes,'shapes.txt')
 puts "Saved file shapes.txt"
 
-#stop_times = kml_file.gtfs_stop_times(10,true)
-#puts "Got #{stop_times.count} stop_times..."
-#to_csv(stop_times,'stop_times.txt')
-#puts "Saved file stop_times.txt"
+stop_times = kml_file.gtfs_stop_times(10,true)
+puts "Got #{stop_times.count} stop_times..."
+to_csv(stop_times,'stop_times.txt')
+puts "Saved file stop_times.txt"
 
 puts "add required files to feed"
 to_csv(kml_file.gtfs_agency, 'agency.txt')
