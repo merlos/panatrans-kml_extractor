@@ -139,13 +139,20 @@ module Panatrans
     class ShapeList < Array
       #
       # id: route_id
-      # coordinates
-      def initialize(id, kml_route_placemark)
+      # reverse coordinates.
+      # reverse = true means that the first point in the list of coordinates
+      # of the kml_route_placemark is the last point of the route trip. By
+      # default is true because MiBus publishes the KML coordinates on reverse
+      # order
+      def initialize(id, kml_route_placemark, reverse = true)
         @id = id
         @placemark = kml_route_placemark
-        coordinates = @placemark.at_css('coordinates').content
+        coordinates_string = @placemark.at_css('coordinates').content
         @sequence = 1
-        coordinates.split(' ').each do |coordinate|
+
+        coords = coordinates_string.split(' ')
+        coords = coords.reverse if reverse
+        coords.each do |coordinate|
           (lon,lat) = coordinate.split(',')
           lat = lat.to_f
           lon = lon.to_f

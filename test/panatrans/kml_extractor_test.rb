@@ -327,9 +327,9 @@ class Panatrans::KmlExtractorTest < Minitest::Test
 
         ste.run(@radius)
         assert_equal 3, ste.route_stops.count
-        assert_equal 1, ste.route_stops[0].id
-        assert_equal 3, ste.route_stops[1].id
-        assert_equal 5, ste.route_stops[2].id
+        assert_equal 5, ste.route_stops[0].id
+        assert_equal 2, ste.route_stops[1].id
+        assert_equal 1, ste.route_stops[2].id
       end
 
       def test_to_gtfs_stop_times_row
@@ -357,9 +357,9 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         # -- end of repeated code --
         stop_times = ste.to_gtfs_stop_times_rows
         assert_equal "trip_1", stop_times[0][:trip_id]
-        assert_equal 1, stop_times[0][:stop_id]
+        assert_equal 5, stop_times[0][:stop_id]
         assert_equal 2, stop_times[1][:stop_sequence]
-        assert_equal 5, stop_times[2][:stop_id]
+        assert_equal 1, stop_times[2][:stop_id]
       end
 
       def test_kml_file_constructor
@@ -402,13 +402,13 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         #pp shapes
         assert_equal 5, shapes.count
         assert_equal 0.00, shapes[0][:shape_pt_lat]
-        assert_equal 1.00, shapes[1][:shape_pt_lon]
+        assert_equal 3.00, shapes[1][:shape_pt_lon]
 
         stop_times = kml_file.gtfs_stop_times(@radius)
         assert_equal 3, stop_times.count
-        assert_equal 1, stop_times[0][:stop_id]
-        assert_equal 3, stop_times[1][:stop_id]
-        assert_equal 5, stop_times[2][:stop_id]
+        assert_equal 5, stop_times[0][:stop_id]
+        assert_equal 2, stop_times[1][:stop_id]
+        assert_equal 1, stop_times[2][:stop_id]
       end
 
       def test_stop_time_extractor_run_with_small_radius
