@@ -3,6 +3,7 @@ require 'nokogiri'
 require 'open-uri'
 require 'pp'
 require 'cross/track/distance'
+require 'csv'
 
 module Panatrans
   module KmlExtractor
@@ -54,6 +55,7 @@ module Panatrans
       end
 
       def self.new_from_gtfs_row(gtfs_row)
+
         s = self.new(gtfs_row[:stop_lat], gtfs_row[:stop_lon])
         s.name = gtfs_row[:stop_name]
         s.id = gtfs_row[:stop_id]
@@ -96,6 +98,16 @@ module Panatrans
           self.add_kml_stop(@id, kml_stop)
           @id = @id + 1
         end
+      end
+
+      def self.new_from_gtfs_stops_file(gtfs_stops_file_path)
+        #puts gtfs_stops_file_path
+        stop_list = StopList.new
+        csv = CSV.read gtfs_stops_file_path, {headers:true}
+        csv.each do |row|
+          stop_list <<::Panatrans::KmlExtractor::Stop.new_from_gtfs_row(row)
+        end
+        return stop_list
       end
 
       # search for an stop within the list. Compares by id

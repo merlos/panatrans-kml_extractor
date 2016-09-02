@@ -12,6 +12,7 @@ class Panatrans::KmlExtractorTest < Minitest::Test
 
     @kml_string = File.open('test/fixtures/test.kml', 'r') { |f| f.read }
     @kml = Nokogiri::XML(open('./test/fixtures/test.kml'))
+    @gtfs_stops_file_path = './test/fixtures/stops.txt'
     @kml_stop = nil
     @kml_route_placemark = nil
     @kml_stop_folder = nil
@@ -100,6 +101,12 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         sl = ::Panatrans::KmlExtractor::StopList.new
         sl.add_kml_stop_folder(@kml_stop_folder)
         assert_equal 4, sl.count
+      end
+
+      def test_stop_list_new_from_gtfs_stops_file
+        sl = ::Panatrans::KmlExtractor::StopList.new_from_gtfs_stops_file(@gtfs_stops_file_path)
+        assert_equal 2, sl.count
+        
       end
 
       def test_stop_list_includes_stop

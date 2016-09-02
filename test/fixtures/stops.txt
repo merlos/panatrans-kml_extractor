@@ -1,0 +1,3 @@
+stop_id,stop_name,stop_lat,stop_lon
+30,Albrook,8.975731,-79.551661
+446,Estacion Marañon,8.961709,-79.538752
