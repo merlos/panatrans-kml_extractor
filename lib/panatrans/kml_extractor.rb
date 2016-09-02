@@ -26,7 +26,7 @@ module Panatrans
       end
     end
 
-    class StopPlacemark < LatLon
+    class Stop < LatLon
       # additional
       attr_reader :id, :placemark, :name
       attr_writer :id, :placemark, :name
@@ -62,7 +62,6 @@ module Panatrans
         }
       end
 
-
       # point = {lat, lon}
       # rectangle = {min_lat, min_lon, max_lat, max_lon}
       # returns true or false
@@ -78,32 +77,32 @@ module Panatrans
 
     end #class
 
-    class StopPlacemarkList < Array
+    class StopList < Array
 
-      def add_stop_placemark(id, kml_stop_placemark)
-        self << StopPlacemark.new_from_kml(id, kml_stop_placemark)
+      def add_kml_stop(id, kml_stop)
+        self << Stop.new_from_kml(id, kml_stop)
       end
 
-      def add_stop_folder(kml_stop_folder)
+      def add_kml_stop_folder(kml_stop_folder)
         @id= 1 if !defined? @id
-        kml_stop_folder.css('Placemark').each do |kml_stop_placemark|
-          self.add_stop_placemark(@id, kml_stop_placemark)
+        kml_stop_folder.css('Placemark').each do |kml_stop|
+          self.add_kml_stop(@id, kml_stop)
           @id = @id + 1
         end
       end
 
       # search for an stop within the list. Compares by id
-      # argument is StopPlacemark
-      def includes_stop_placemark (stop_placemark)
+      # argument is Stop
+      def includes_stop (stop)
         return false if self.count == 0
-        self.any? {|item| item.id == stop_placemark.id}
+        self.any? {|item| item.id == stop.id}
       end
 
       # returns the StoPlacemarkList of the stops that are within the
       # box
       #box has the format { min_lat, max_lat, min_lon, max_lon}
       def stops_in_box(box)
-        in_box = StopPlacemarkList.new
+        in_box = StopList.new
         self.each do |stop|
           in_box << stop if stop.is_stop_in_box(box)
         end
@@ -143,7 +142,7 @@ module Panatrans
       # reverse = true means that the first point in the list of coordinates
       # of the kml_route_placemark is the last point of the route trip. By
       # default is true because MiBus publishes the KML coordinates on reverse
-      # order 
+      # order
       def initialize(id, kml_route_placemark, reverse = true)
         @id = id
         @placemark = kml_route_placemark
@@ -176,7 +175,7 @@ module Panatrans
 
 
 
-    class RoutePlacemark
+    class Route
 
       attr_reader :id, :placemark, :name, :desc, :shape
 
@@ -231,28 +230,28 @@ module Panatrans
         @shape.to_gtfs_shape_rows
       end
 
-    end # RoutePlacemark
+    end # Route
 
-    class RoutePlacemarkList < Array
+    class RouteList < Array
 
       def add_route_folder(kml_route_folder)
         @id= 1 if !defined? @id
         kml_route_folder.css('Placemark').each do |kml_route_placemark|
-          self << RoutePlacemark.new(@id, kml_route_placemark)
+          self << Route.new(@id, kml_route_placemark)
           @id = @id + 1
         end
       end
-    end # class RoutePlacemarkList
+    end # class RouteList
 
 
-    # Extracts the StopTimes from a RoutePlacemark and a stop_list
+    # Extracts the StopTimes from a Route and a stop_list
     # stop_list is the list of all stops in the map.
     # route is a route with the shape (list of points).
     # usage:
     #  ste = StopTimesExtractor.new(route, stop_list)
     #  ste.run
     #  then
-    #     ste.route_stops has a StopPlacemarkList with the route stops ordered
+    #     ste.route_stops has a StopList with the route stops ordered
     #     ste.to_gtfs_stop_times returns an array with the stop times rows
     #
     #
@@ -346,7 +345,7 @@ module Panatrans
           # Extracts the StopTimes from the route with a radius in meters
           def run(radius)
             @route_stops = nil
-            @route_stops = StopPlacemarkList.new
+            @route_stops = StopList.new
             segment_start = nil
             segment_end = nil
             #pp route.shape
@@ -370,7 +369,7 @@ module Panatrans
                 next if stops_in_box.empty?
                 new_stop = self.closest_point_to_segment_at_right(stops_in_box, segment_start, segment_end)
                 next if new_stop.nil?
-                @route_stops << new_stop if !@route_stops.includes_stop_placemark(new_stop)
+                @route_stops << new_stop if !@route_stops.includes_stop(new_stop)
               end
             end #shape_point
             # add final stop if not added yet
@@ -378,7 +377,7 @@ module Panatrans
             stops_in_box = @stop_list.stops_in_box(box)
             last_stop = self.closest_point(stops_in_box, @route.shape.last)
             if !last_stop.nil?
-              @route_stops << last_stop if !@route_stops.includes_stop_placemark(last_stop)
+              @route_stops << last_stop if !@route_stops.includes_stop(last_stop)
             end
           end
 
@@ -409,11 +408,11 @@ module Panatrans
           def initialize(kml_file_path)
             @file_path = kml_file_path
             @doc = Nokogiri::XML(open(kml_file_path))
-            @stop_list = ::Panatrans::KmlExtractor::StopPlacemarkList.new
-            @route_list = ::Panatrans::KmlExtractor::RoutePlacemarkList.new
+            @stop_list = ::Panatrans::KmlExtractor::StopList.new
+            @route_list = ::Panatrans::KmlExtractor::RouteList.new
             @doc.css('Folder').each do |folder|
               if folder.at_css('name').content == 'Rutas_por_parada' then
-               @stop_list.add_stop_folder(folder)
+               @stop_list.add_kml_stop_folder(folder)
               end
               if folder.at_css('name').content == 'RUTAS_METROBUS_2016' then
                 @route_list.add_route_folder(folder)

@@ -12,7 +12,7 @@ class Panatrans::KmlExtractorTest < Minitest::Test
 
     @kml_string = File.open('test/fixtures/test.kml', 'r') { |f| f.read }
     @kml = Nokogiri::XML(open('./test/fixtures/test.kml'))
-    @kml_stop_placemark = nil
+    @kml_stop = nil
     @kml_route_placemark = nil
     @kml_stop_folder = nil
     @kml_route_folder = nil
@@ -20,7 +20,7 @@ class Panatrans::KmlExtractorTest < Minitest::Test
       if folder.at_css('name').content == 'Rutas_por_parada' then
         @kml_stop_folder = folder
         folder.css('Placemark').each do |placemark|
-          @kml_stop_placemark = placemark if placemark.at_css('name').content == 'TestStop'
+          @kml_stop = placemark if placemark.at_css('name').content == 'TestStop'
         end
       end
       if folder.at_css('name').content == 'RUTAS_METROBUS_2016' then
@@ -30,39 +30,38 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         end
       end
     end #kml folder
-    @s = ::Panatrans::KmlExtractor::StopPlacemark.new_from_kml(1, @kml_stop_placemark)
-    @r = ::Panatrans::KmlExtractor::RoutePlacemark.new(1, @kml_route_placemark)
+    @s = ::Panatrans::KmlExtractor::Stop.new_from_kml(1, @kml_stop)
+    @r = ::Panatrans::KmlExtractor::Route.new(1, @kml_route_placemark)
   end #setup
 
 
-    def test_kml_stop_placemark_was_set_on_setup
-      assert_equal 'TestStop', @kml_stop_placemark.at_css('name').content
+    def test_kml_stop_was_set_on_setup
+      assert_equal 'TestStop', @kml_stop.at_css('name').content
     end
 
     def test_kml_route_placemark_was_set_on_setup
       assert_equal 'TestRoute', @kml_route_placemark.at_css('name').content
     end
 
-    # StopPlacemark tests
-    def test_stop_placemark_constructor
-      s = ::Panatrans::KmlExtractor::StopPlacemark.new_from_kml(1, @kml_stop_placemark)
+    # Stop tests
+    def test_stop_constructor
+      s = ::Panatrans::KmlExtractor::Stop.new_from_kml(1, @kml_stop)
       assert_equal 'TestStop', s.name
     end
 
-    def test_stop_placemark_coords_method
-      r = ::Panatrans::KmlExtractor::StopPlacemark.new(9.0, 8.0)
+    def test_stop_coords_method
+      r = ::Panatrans::KmlExtractor::Stop.new(9.0, 8.0)
       r.coords = {lat: 1.0, lon:2.0}
       assert_equal 1.0, r.lat
       assert_equal 2.0, r.lon
     end
 
     def test_route_placemark_constructor
-      r = ::Panatrans::KmlExtractor::RoutePlacemark.new(1, @kml_route_placemark)
+      r = ::Panatrans::KmlExtractor::Route.new(1, @kml_route_placemark)
       assert_equal 'TestRoute', r.name
     end
 
-
-    def test_stop_placemark_to_gtfs_stop_row
+    def test_stop_to_gtfs_stop_row
       row = @s.to_gtfs_stop_row
       assert_equal "1", row[:stop_id]
       assert_equal "TestStop", row[:stop_name]
@@ -79,32 +78,32 @@ class Panatrans::KmlExtractorTest < Minitest::Test
       assert !@s.is_stop_in_box(box2)
     end
 
-      # StopPlacemarkList tests
-      def test_stop_placemark_list_add_stop_placemark
-        sl = ::Panatrans::KmlExtractor::StopPlacemarkList.new
-        sl.add_stop_placemark(1, @kml_stop_placemark)
+      # StopList tests
+      def test_stop_list_add_kml_stop
+        sl = ::Panatrans::KmlExtractor::StopList.new
+        sl.add_kml_stop(1, @kml_stop)
         assert_equal 1, sl.count
         assert_equal 1, sl[0].id
         assert_equal 'TestStop', sl[0].name
       end
 
-      def test_stop_placemark_list_add_folder
-        sl = ::Panatrans::KmlExtractor::StopPlacemarkList.new
-        sl.add_stop_folder(@kml_stop_folder)
+      def test_stop_list_add_folder
+        sl = ::Panatrans::KmlExtractor::StopList.new
+        sl.add_kml_stop_folder(@kml_stop_folder)
         assert_equal 4, sl.count
       end
 
-      def test_stop_placemark_list_includes_stop_placemark
-        sl = ::Panatrans::KmlExtractor::StopPlacemarkList.new
-        sl.add_stop_folder(@kml_stop_folder)
+      def test_stop_list_includes_stop
+        sl = ::Panatrans::KmlExtractor::StopList.new
+        sl.add_kml_stop_folder(@kml_stop_folder)
         assert_equal 4, sl.count
-        assert sl.includes_stop_placemark(@s)
+        assert sl.includes_stop(@s)
       end
 
-      def test_stop_placemark_list_stops_in_box
+      def test_stop_list_stops_in_box
         box = {min_lat: 8.999999, max_lat: 9.000001, min_lon: -80.01000, max_lon: -79.999}
-        sl = ::Panatrans::KmlExtractor::StopPlacemarkList.new
-        sl.add_stop_folder(@kml_stop_folder)
+        sl = ::Panatrans::KmlExtractor::StopList.new
+        sl.add_kml_stop_folder(@kml_stop_folder)
         stops_in_box = sl.stops_in_box(box)
         #pp stops_in_box
         assert_equal 1, stops_in_box.count
@@ -137,7 +136,7 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         assert_equal 9.1, row[:shape_pt_lon]
       end
 
-      # RoutePlacemark tests
+      # Route tests
       def test_route_placemark_to_gtfs_route_row
         row = @r.to_gtfs_route_row
         assert_equal "1", row[:route_id]
@@ -177,9 +176,9 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         assert_equal 2, row[:shape_pt_sequence]
       end
 
-      # RoutePlacemarkList
+      # RouteList
       def test_route_placemark_list
-        rpl = ::Panatrans::KmlExtractor::RoutePlacemarkList.new
+        rpl = ::Panatrans::KmlExtractor::RouteList.new
         rpl.add_route_folder(@kml_route_folder)
         assert 3, rpl.count
       end
@@ -214,14 +213,14 @@ class Panatrans::KmlExtractorTest < Minitest::Test
         ste = ::Panatrans::KmlExtractor::StopTimesExtractor.new(nil,nil)
         box = {min_lat: -2, max_lat: 2, min_lon: -2, max_lon: 2}
         # points inside
-        p_in1 = ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1, {lat: -1.0, lon: -1.0})
-        p_in2 = ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(2, {lat: 1.0, lon: 1.0 })
+        p_in1 = ::Panatrans::KmlExtractor::Stop.new_from_point(1, {lat: -1.0, lon: -1.0})
+        p_in2 = ::Panatrans::KmlExtractor::Stop.new_from_point(2, {lat: 1.0, lon: 1.0 })
 
         # points outside
-        p_out1 = ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(10,{lat: -3.0, lon: 1.0})
-        p_out2 = ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(11,{lat: 3.0, lon: 1.0 })
-        p_out3 = ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(12,{lat: 1.0, lon: -3.0 })
-        p_out4 = ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(13,{lat: 1.0, lon: 3.0 })
+        p_out1 = ::Panatrans::KmlExtractor::Stop.new_from_point(10,{lat: -3.0, lon: 1.0})
+        p_out2 = ::Panatrans::KmlExtractor::Stop.new_from_point(11,{lat: 3.0, lon: 1.0 })
+        p_out3 = ::Panatrans::KmlExtractor::Stop.new_from_point(12,{lat: 1.0, lon: -3.0 })
+        p_out4 = ::Panatrans::KmlExtractor::Stop.new_from_point(13,{lat: 1.0, lon: 3.0 })
 
         assert ste.is_point_in_rectangle(p_in1, box)
         assert ste.is_point_in_rectangle(p_in2, box)
@@ -234,10 +233,10 @@ class Panatrans::KmlExtractorTest < Minitest::Test
       def test_closest_point
         ste = ::Panatrans::KmlExtractor::StopTimesExtractor.new(nil,nil)
         point_arr1 = [
-          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1,{lat:1.0, lon: 1.0}),
-          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(2,{lat: 2.0, lon: 2.0})
+          ::Panatrans::KmlExtractor::Stop.new_from_point(1,{lat:1.0, lon: 1.0}),
+          ::Panatrans::KmlExtractor::Stop.new_from_point(2,{lat: 2.0, lon: 2.0})
         ]
-        point = ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1,{lat: 0.0, lon: 0.0})
+        point = ::Panatrans::KmlExtractor::Stop.new_from_point(1,{lat: 0.0, lon: 0.0})
         # test nil
         r1 = ste.closest_point(nil, point)
         assert_nil r1
@@ -259,16 +258,16 @@ class Panatrans::KmlExtractorTest < Minitest::Test
 
         #All are on the left
         point_arr1 = [
-            ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1, {lat:1.0, lon: 1.0}),
-            ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(2, {lat: 2.0, lon: 2.0})
+            ::Panatrans::KmlExtractor::Stop.new_from_point(1, {lat:1.0, lon: 1.0}),
+            ::Panatrans::KmlExtractor::Stop.new_from_point(2, {lat: 2.0, lon: 2.0})
           ]
         r1 = ste.closest_point_to_segment_at_right(point_arr1,segment_start, segment_end)
         assert_nil r1
 
         #only the first point is on the right
         point_arr2 = [
-          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1, {lat:-1.0, lon: 1.0}),
-          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(2, {lat: 2.0, lon: 2.0})
+          ::Panatrans::KmlExtractor::Stop.new_from_point(1, {lat:-1.0, lon: 1.0}),
+          ::Panatrans::KmlExtractor::Stop.new_from_point(2, {lat: 2.0, lon: 2.0})
         ]
         r2 = ste.closest_point_to_segment_at_right(point_arr2,segment_start, segment_end)
         assert_equal(-1.0, r2.lat)
@@ -276,9 +275,9 @@ class Panatrans::KmlExtractorTest < Minitest::Test
 
         # Two points on the right, select closer
         point_arr3 = [
-          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1,{lat:-1.0, lon: 1.0}),
-          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(2,{lat: -2.0, lon: 2.0}),
-          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(4,{lat: -3.0,lon: 3.0})
+          ::Panatrans::KmlExtractor::Stop.new_from_point(1,{lat:-1.0, lon: 1.0}),
+          ::Panatrans::KmlExtractor::Stop.new_from_point(2,{lat: -2.0, lon: 2.0}),
+          ::Panatrans::KmlExtractor::Stop.new_from_point(4,{lat: -3.0,lon: 3.0})
         ]
         r3 = ste.closest_point_to_segment_at_right(point_arr3,segment_start, segment_end)
         assert_equal(-1.0, r3.lat)
@@ -286,9 +285,9 @@ class Panatrans::KmlExtractorTest < Minitest::Test
 
         # Two points on the right, but there is one on the left closer
         point_arr4 = [
-          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1, {lat:-1.0, lon: 1.0}),
-          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(2, {lat: -2.0, lon: 2.0}),
-          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(3, {lat:0.5,lon:0.5})
+          ::Panatrans::KmlExtractor::Stop.new_from_point(1, {lat:-1.0, lon: 1.0}),
+          ::Panatrans::KmlExtractor::Stop.new_from_point(2, {lat: -2.0, lon: 2.0}),
+          ::Panatrans::KmlExtractor::Stop.new_from_point(3, {lat:0.5,lon:0.5})
         ]
         r4 = ste.closest_point_to_segment_at_right(point_arr4,segment_start, segment_end)
         assert_equal(-1.0, r4.lat)
@@ -296,9 +295,9 @@ class Panatrans::KmlExtractorTest < Minitest::Test
 
         # The segment goes on the other direction
         point_arr5 = [
-          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1,{lat:-1.0, lon: 1.0}),
-          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1,{lat: -2.0, lon: 2.0}),
-          ::Panatrans::KmlExtractor::StopPlacemark.new_from_point(1,{lat:0.5,lon:0.5})
+          ::Panatrans::KmlExtractor::Stop.new_from_point(1,{lat:-1.0, lon: 1.0}),
+          ::Panatrans::KmlExtractor::Stop.new_from_point(1,{lat: -2.0, lon: 2.0}),
+          ::Panatrans::KmlExtractor::Stop.new_from_point(1,{lat:0.5,lon:0.5})
         ]
         r5 = ste.closest_point_to_segment_at_right(point_arr5,segment_end, segment_start)
         assert_equal 0.5, r5.lat
@@ -307,11 +306,11 @@ class Panatrans::KmlExtractorTest < Minitest::Test
 
       def test_stop_time_extractor_run
         run_kml = Nokogiri::XML(open('./test/fixtures/run_test.kml'))
-        sl = ::Panatrans::KmlExtractor::StopPlacemarkList.new
+        sl = ::Panatrans::KmlExtractor::StopList.new
         kml_r1 = nil
         run_kml.css('Folder').each do |folder|
           if folder.at_css('name').content == 'Rutas_por_parada' then
-            sl.add_stop_folder(folder)
+            sl.add_kml_stop_folder(folder)
           end
           if folder.at_css('name').content == 'RUTAS_METROBUS_2016' then
             folder.css('Placemark').each do |placemark|
@@ -319,7 +318,7 @@ class Panatrans::KmlExtractorTest < Minitest::Test
             end
           end
         end #run_kml folder
-        route1 = ::Panatrans::KmlExtractor::RoutePlacemark.new(1, kml_r1)
+        route1 = ::Panatrans::KmlExtractor::Route.new(1, kml_r1)
         #basic checks to confirm file was correctly loaded
         assert_equal 5,sl.count
         assert_equal 5, route1.shape.count
@@ -335,11 +334,11 @@ class Panatrans::KmlExtractorTest < Minitest::Test
       def test_to_gtfs_stop_times_row
         ##------ Repeated code ---
         run_kml = Nokogiri::XML(open('./test/fixtures/run_test.kml'))
-        sl = ::Panatrans::KmlExtractor::StopPlacemarkList.new
+        sl = ::Panatrans::KmlExtractor::StopList.new
         kml_r1 = nil
         run_kml.css('Folder').each do |folder|
           if folder.at_css('name').content == 'Rutas_por_parada' then
-            sl.add_stop_folder(folder)
+            sl.add_kml_stop_folder(folder)
           end
           if folder.at_css('name').content == 'RUTAS_METROBUS_2016' then
             folder.css('Placemark').each do |placemark|
@@ -347,7 +346,7 @@ class Panatrans::KmlExtractorTest < Minitest::Test
             end
           end
         end #run_kml folder
-        route1 = ::Panatrans::KmlExtractor::RoutePlacemark.new(1, kml_r1)
+        route1 = ::Panatrans::KmlExtractor::Route.new(1, kml_r1)
         #basic checks to confirm file was correctly loaded
         assert_equal 5,sl.count
         assert_equal 5, route1.shape.count
