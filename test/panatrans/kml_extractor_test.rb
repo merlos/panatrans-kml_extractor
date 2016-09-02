@@ -69,6 +69,15 @@ class Panatrans::KmlExtractorTest < Minitest::Test
       assert_equal 9.000000, row[:stop_lat]
     end
 
+    def test_stop_constructor_from_gtfs
+      row = @s.to_gtfs_stop_row
+      s2 = ::Panatrans::KmlExtractor::Stop.new_from_gtfs_row(row)
+      assert_equal "1", s2.id
+      assert_equal "TestStop", s2.name
+      assert_equal(-80.000001, s2.lon)
+      assert_equal 9.000000, s2.lat
+    end
+
     def test_is_stop_in_box
       box = {min_lat: 8.0, max_lat: 10.0, min_lon: -81.0, max_lon: -79.0}
       # point is inside

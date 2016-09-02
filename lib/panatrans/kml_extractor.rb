@@ -53,6 +53,13 @@ module Panatrans
         return s
       end
 
+      def self.new_from_gtfs_row(gtfs_row)
+        s = self.new(gtfs_row[:stop_lat], gtfs_row[:stop_lon])
+        s.name = gtfs_row[:stop_name]
+        s.id = gtfs_row[:stop_id]
+        return s
+      end
+
       def to_gtfs_stop_row
         {
           stop_id: @id.to_s,
