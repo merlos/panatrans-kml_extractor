@@ -12,6 +12,7 @@ module Panatrans
       attr_reader :lat, :lon
       attr_writer :lat, :lon
 
+      # lat and long shall be float
       def initialize(lat,lon)
         @lat = lat
         @lon = lon
@@ -55,8 +56,7 @@ module Panatrans
       end
 
       def self.new_from_gtfs_row(gtfs_row)
-
-        s = self.new(gtfs_row[:stop_lat], gtfs_row[:stop_lon])
+        s = self.new(gtfs_row[:stop_lat].to_f, gtfs_row[:stop_lon].to_f)
         s.name = gtfs_row[:stop_name]
         s.id = gtfs_row[:stop_id]
         return s
@@ -103,7 +103,7 @@ module Panatrans
       def self.new_from_gtfs_stops_file(gtfs_stops_file_path)
         #puts gtfs_stops_file_path
         stop_list = StopList.new
-        csv = CSV.read gtfs_stops_file_path, {headers:true}
+        csv = CSV.read gtfs_stops_file_path, {headers:true, header_converters: :symbol}
         csv.each do |row|
           stop_list <<::Panatrans::KmlExtractor::Stop.new_from_gtfs_row(row)
         end

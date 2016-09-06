@@ -106,7 +106,12 @@ class Panatrans::KmlExtractorTest < Minitest::Test
       def test_stop_list_new_from_gtfs_stops_file
         sl = ::Panatrans::KmlExtractor::StopList.new_from_gtfs_stops_file(@gtfs_stops_file_path)
         assert_equal 2, sl.count
-        
+        assert_equal '30', sl[0].id
+        assert_equal 'Albrook', sl[0].name
+        assert_equal 8.961709, sl[1].lat
+        assert_equal(-79.538752, sl[1].lon)
+
+
       end
 
       def test_stop_list_includes_stop
