@@ -1,0 +1,50 @@
+#!/usr/bin/env ruby
+require "bundler/setup"
+
+require 'csv'
+require 'panatrans/kml_extractor'
+require 'panatrans/kml_extractor/utils'
+require 'nokogiri'
+require 'open-uri'
+require 'pp'
+require 'cross/track/distance'
+
+
+if ARGV.count != 2
+  puts ""
+  puts "  Usage: "
+  puts "    stop_times <path_to_file.kml> <path_to_stops_file.txt>"
+  puts ""
+  exit
+end
+
+
+kml_file_path = ARGV[0]
+stops_file_path = ARGV[1]
+
+# LOAD KML
+puts "loading #{kml_file_path}"
+if !File.exist?(kml_file_path)
+  puts 'Error: ' + kml_file_path + ' does not exist'
+end
+kml_file = ::Panatrans::KmlExtractor::KmlFile.new(kml_file_path)
+puts "loaded KML file..."
+
+# LOAD STOPS.TXT
+puts "loading #{stops_file_path}"
+if !File.exist?(stops_file_path)
+  puts 'Error: ' + stops_file_path + ' does not exist'
+end
+stop_list = ::Panatrans::KmlExtractor::StopList.new_from_gtfs_stops_file(stops_file_path)
+puts "loaded STOPS file..."
+
+# Assign to kml_file stop_list loaded from stops
+kml_file.stop_list = stop_list
+
+# Now run the stops_times
+stop_times = kml_file.gtfs_stop_times(10,true)
+puts "Got #{stop_times.count} stop_times..."
+::Panatrans::KmlExtractor::Utils::to_csv(stop_times,'stop_times.txt')
+puts "Saved file stop_times.txt"
+
+::Panatrans::KmlExtractor::Utils::to_csv(stop_times,'stop_times.txt')

@@ -424,6 +424,7 @@ module Panatrans
 
         class KmlFile
           attr_reader :doc, :stop_list, :route_list
+          attr_writer :doc, :stop_list, :route_list
           def initialize(kml_file_path)
             @file_path = kml_file_path
             @doc = Nokogiri::XML(open(kml_file_path))
