@@ -11,7 +11,7 @@ require 'cross/track/distance'
 
 if ARGV[0].nil?
   puts "  Usage: "
-  puts "    kmlex.rb <path_to_file.kml> "
+  puts "    kmlex <path_to_file.kml> "
   exit
 end
 
