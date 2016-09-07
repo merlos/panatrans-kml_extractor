@@ -4,17 +4,16 @@ Kml-extractor is a gem specifically developed to extract the data of from a KML 
 
 This gem is a proxy to generate a GTFS feed.
 
-It's has been thought just to solve a particular problem and, although it has many things hardcoded for this particular case, it should not be very difficult for a ruby on rails developer to extend it or accommodate the code to another case.
+It's has been thought just to solve a particular problem and, although, it has many things hardcoded, it should not be very difficult for a ruby on rails developer to extend it or accommodate the code to another case.
 
 ## Expected format of the KML file.
 
-You have a few examples of the KML files on `test/fixtures/` and the export of http://www.mibus.com.pa/rutas/ and https://www.google.com/maps/d/viewer?mid=1qrNCXDiwFL-yWeFNwOw3U2l0v1I
+You have a few examples of the KML files on `test/fixtures/`. The gem also includes the the export of http://www.mibus.com.pa/rutas/ (available also in Google Maps https://www.google.com/maps/d/viewer?mid=1qrNCXDiwFL-yWeFNwOw3U2l0v1I)
 
+The gem just processes a KML file and outputs a GTFS feed. The KML shall have two folders:
 
-The gem just processes a KML file and outputs a GTFS feed. The KML should have two folders:
-
-    * Folder of stops (name: `Rutas_por_parada` ): A bunch of single points coordinates
-    * Folder of routes/trips (name: `RUTAS_METROBUS_2016`): A set of polylines.
+* Folder of stops (name: `Rutas_por_parada` ): A bunch of single points coordinates
+* Folder of routes/trips (name: `RUTAS_METROBUS_2016`): A set of polylines.
 
 ## Installation
 
@@ -37,24 +36,24 @@ It includes a simple command line file that does the magic:
     ../bin/kmlex <path to kml_file>                   # Output files will be saved on current working directory.
 
 ```
-The output is a complete GTFS feed that includes the following files: agency.txt, calendar.txt, routes.txt, shapes.txt, stop_times.txt, stops.txt and trips.txt,
+The output is a complete GTFS feed that includes the following files: `agency.txt`, `calendar.txt`, `routes.txt`, `shapes.txt`, `stop_times.txt`, `stops.txt` and `trips.txt`.
 
 ## Using an alternate stops.txt as source.
 
-You may want to clean the stops before generating the `stop_times.txt` file. In
-order to do that, you can use  `bin/stop_times`
+You may want to clean the stop list before generating the `stop_times.txt` file. In
+order to do that, you can use the script `bin/stop_times`
 
 ```
 Usage:
   stop_times <path_to_file.kml> <path_to_stops_file.txt>
 ```
 It generates a `stop_times.txt`file that uses the routes of the KML (first argument)
-and the stops of the  txt file provided as second argument.
+and the stops of the txt file provided as second argument.
 
 # The code
 `lib/panatrans/kml_extractor.rb` contains all the code. The KMLFile class is the one you should call to generate the output.
 
-Basically, the procedure is to read the KML file, searching for the two folders. To read the file, as it is an XML, nokogiri is used When the stops folder is found, extracts the stop using nokogiri,
+Basically, in order to extract the data is reads the KML file, searchs for the two folders (the ones mentioned above) and creates a couple of arrays one with the stops and one with the routes and shapes linked. The file is a KML, to parse it [nokogiri](http://www.nokogiri.org/) is used. 
 
 ## Tests
 
@@ -67,11 +66,11 @@ To run the test, just run the typical:
 
 ## TODO list
 
- * Add some cleaners. The source of MiBus KML file has orthographic mistakes. Also
+ * Add some "cleaners". The source of MiBus KML file has orthographic mistakes. Also
  some stations include the bay number. It is hard for the simple algorithm to
  know which bay corresponds to the route/trip.
 
- * It should be separates the code in several files, one for each class.
+ * Code should be separated in several files, one for each class.
 
 ## License
 
